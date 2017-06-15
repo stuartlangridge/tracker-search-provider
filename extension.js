@@ -183,7 +183,11 @@ const TrackerSearchProvider = new Lang.Class({
         } catch (error) {
             //global.log("TrackerSearchProvider: Could not traverse results cursor: " + error.message);
         }
-        this.searchSystem.setResults(this, results);
+        if (this.searchSystem) {
+            this.searchSystem.setResults(this, results);
+        } else {
+            callback(results);
+        }
     },
 
     _connection_ready : function(object, result, terms, filetype, callback) {
@@ -263,13 +267,25 @@ function init() {
 function enable() {
     if (!trackerSearchProviderFiles) {
         trackerSearchProviderFiles = new TrackerSearchProvider("FILES", CategoryType.FTS);
-        Main.overview.addSearchProvider(trackerSearchProviderFiles);
+        if (Main.overview.viewSelector && Main.overview.viewSelector._searchResults && Main.overview.viewSelector._searchResults._searchSystem) {
+            Main.overview.viewSelector._searchResults._searchSystem.addProvider(trackerSearchProviderFiles)
+        } else if (Main.overview.viewSelector && Main.overview.viewSelector._searchResults && Main.overview.viewSelector._searchResults._registerProvider) {
+            Main.overview.viewSelector._searchResults._registerProvider(trackerSearchProviderFiles);
+        } else {
+            Main.overview.addSearchProvider(trackerSearchProviderFiles);
+        }
     }
 }
 
 function disable() {
     if (trackerSearchProviderFiles){
-        Main.overview.removeSearchProvider(trackerSearchProviderFiles);
+        if (Main.overview.viewSelector && Main.overview.viewSelector._searchResults && Main.overview.viewSelector._searchResults._searchSystem) {
+            Main.overview.viewSelector._searchResults._searchSystem._unregisterProvider(trackerSearchProviderFiles)
+        } else if (Main.overview.viewSelector && Main.overview.viewSelector._searchResults && Main.overview.viewSelector._searchResults._registerProvider) {
+            Main.overview.viewSelector._searchResults._unregisterProvider(trackerSearchProviderFiles);
+        } else {
+            Main.overview.removeSearchProvider(trackerSearchProviderFiles);
+        }
         trackerSearchProviderFiles = null;
     }
 }
